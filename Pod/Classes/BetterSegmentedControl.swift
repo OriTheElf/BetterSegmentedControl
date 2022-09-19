@@ -444,6 +444,10 @@ import UIKit
         for (index, _) in selectedSegmentViews.enumerated() {
             selectedSegmentViews[index].accessibilityTraits = (index == self.index ? [.button, .selected] : [.button])
         }
+        
+        for (index, view) in normalSegmentViews.enumerated() {
+            view.isHidden = index == self.index
+        }
     }
     
     private func frameForElement(atIndex index: Int) -> CGRect {
