@@ -100,6 +100,12 @@ import UIKit
     /// The spring damping ratio of the animation of an index change. Defaults to `0.75`. Set to `1.0` for a no bounce effect.
     @IBInspectable public var animationSpringDamping: CGFloat = 0.75
     
+    @IBInspectable public var segmentSpacing: CGFloat = 0 {
+        didSet {
+            invalidateIntrinsicContentSize()
+        }
+    }
+    
     /// When the control auto-sizes itself, this controls the additional side padding between the segments.
     @IBInspectable public var segmentPadding: CGFloat = 14.0 {
         didSet {
@@ -111,18 +117,20 @@ import UIKit
         let segmentIntrinsicContentSizes = segments.map {
             $0.intrinsicContentSize ?? .zero
         }
-        
+        /// 取出元素中最大的宽度
         let maxSegmentIntrinsicContentSizeWidth = segmentIntrinsicContentSizes.max(by: { (a, b) in
             return a.width < b.width
         })?.width ?? 0.0
         
+        /// 取出元素中最大的高度
         let maxSegmentIntrinsicContentSizeHeight = segmentIntrinsicContentSizes.max(by: { (a, b) in
             return a.height < b.height
         })?.height ?? 0.0
         
-        let singleSegmentWidth = totalInsetSize + max(maxSegmentIntrinsicContentSizeWidth, Constants.minimumSegmentIntrinsicContentSizeWidth) + segmentPadding
+        let singleSegmentWidth = totalInsetSize + max(maxSegmentIntrinsicContentSizeWidth, Constants.minimumSegmentIntrinsicContentSizeWidth) + segmentPadding + segmentSpacing
         
-        let width = ceil(CGFloat(segments.count) * singleSegmentWidth)
+        var width = ceil(CGFloat(segments.count) * singleSegmentWidth)
+        width -= segments.count > 0 ? segmentSpacing : 0
         let height = ceil(max(maxSegmentIntrinsicContentSizeHeight + totalInsetSize, Constants.minimumIntrinsicContentSizeHeight))
         
         return .init(width: width, height: height)
@@ -339,6 +347,8 @@ import UIKit
                 animationDuration = value
             case let .animationSpringDamping(value):
                 animationSpringDamping = value
+            case let .segmentSpacing(value):
+                segmentSpacing = value
             }
         }
     }
@@ -451,13 +461,18 @@ import UIKit
     }
     
     private func frameForElement(atIndex index: Int) -> CGRect {
-        let elementWidth = (width - totalInsetSize) / CGFloat(normalSegmentViewCount)
-        let x = CGFloat(isLayoutDirectionRightToLeft ? lastIndex - index : index) * elementWidth
-        
-        return CGRect(x: x + indicatorViewInset,
-                      y: indicatorViewInset,
-                      width: elementWidth,
-                      height: height - totalInsetSize)
+        /// 元素宽度带边距
+        let count = CGFloat(normalSegmentViewCount)
+        var elementWidth = width / count
+        var elementInsetWidth = elementWidth - totalInsetSize
+        let x = CGFloat(isLayoutDirectionRightToLeft ? lastIndex - index : index) * elementInsetWidth
+        let width = (width - (count - 1.0) * segmentSpacing - (count * (totalInsetSize + segmentPadding))) / count
+        return CGRect(
+            x: x + indicatorViewInset,// + (index == 0 ? 0 : segmentSpacing),
+            y: indicatorViewInset,
+            width: width,
+            height: height - totalInsetSize
+        )
     }
     
     private func resetIndex() {
